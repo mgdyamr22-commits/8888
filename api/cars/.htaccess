@@ -1,0 +1,33 @@
+# Almakhzoun Inventory Pro - Cars Subdirectory Configuration
+<IfModule mod_dir.c>
+    DirectorySlash Off
+    DirectoryIndex index.php
+</IfModule>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Allow direct access to physical .php files if called explicitly
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule \.php$ - [L]
+
+    # Handle directory root and index.php calls explicitly
+    RewriteRule ^$ index.php [QSA,L]
+    RewriteRule ^index(\.php)?/?$ index.php [QSA,L]
+
+    # Specific named endpoints
+    RewriteRule ^bulk-insert(\.php)?/?$ index.php?action=bulk-insert [QSA,L]
+    RewriteRule ^bulk-delete(\.php)?/?$ index.php?action=bulk-delete [QSA,L]
+    RewriteRule ^exit(\.php)?/?$ exit.php [QSA,L]
+    RewriteRule ^detail(\.php)?/?$ detail.php [QSA,L]
+
+    # Actions on specific car ID
+    RewriteRule ^([^/]+)/reserve/?$ detail.php?id=$1&action=reserve [QSA,L]
+    RewriteRule ^([^/]+)/cancel-reservation/?$ detail.php?id=$1&action=cancel-reservation [QSA,L]
+
+    # Single car operations by ID (exclude index, detail, exit, bulk actions)
+    RewriteCond %{REQUEST_URI} !/(index|detail|exit|bulk-insert|bulk-delete)(\.php)?$ [NC]
+    RewriteRule ^([^/]+)/?$ detail.php?id=$1 [QSA,L]
+</IfModule>
+

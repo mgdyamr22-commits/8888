@@ -1,0 +1,28 @@
+# Almakhzoun Inventory Pro - Auth Subdirectory Configuration
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+    
+    # Direct access to .php files
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule \.php$ - [L]
+
+    # Map validate-session -> validate-session.php
+    RewriteRule ^validate-session/?$ validate-session.php [QSA,L]
+    RewriteRule ^refresh-token/?$ refresh-token.php [QSA,L]
+    RewriteRule ^delegates/?$ delegates.php [QSA,L]
+    RewriteRule ^sync-delegates/?$ sync-delegates.php [QSA,L]
+    RewriteRule ^sync-users/?$ sync-users.php [QSA,L]
+    RewriteRule ^company/([^/]+)/?$ company.php?id=$1 [QSA,L]
+    RewriteRule ^login/?$ login.php [QSA,L]
+    RewriteRule ^logout/?$ logout.php [QSA,L]
+    RewriteRule ^me/?$ me.php [QSA,L]
+    RewriteRule ^users/?$ users.php [QSA,L]
+    RewriteRule ^setup-security-questions/?$ setup-security-questions.php [QSA,L]
+    RewriteRule ^get-security-questions/?$ get-security-questions.php [QSA,L]
+    RewriteRule ^verify-questions/?$ verify-questions.php [QSA,L]
+    RewriteRule ^verify-recovery-code/?$ verify-recovery-code.php [QSA,L]
+    RewriteRule ^verify-recovery-file/?$ verify-recovery-file.php [QSA,L]
+    RewriteRule ^verify-password/?$ verify-password.php [QSA,L]
+    RewriteRule ^reset-password/?$ reset-password.php [QSA,L]
+</IfModule>

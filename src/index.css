@@ -1,0 +1,171 @@
+@import "tailwindcss";
+
+@variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-brand-50: #f0f7ff;
+  --color-brand-100: #e0effe;
+  --color-brand-500: #3b82f6;
+  --color-brand-600: #2563eb;
+  --color-brand-700: #1d4ed8;
+  
+  --font-sans: 'Cairo', sans-serif;
+}
+
+/* Performance and Hardware Acceleration Enhancements */
+html, body {
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Hardware accelerated scroll containers */
+.smooth-scroll {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  will-change: scroll-position;
+}
+
+/* Optimizing performance for large tables and lists */
+.virtual-table-row {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 48px;
+}
+
+/* Prevent layout shifts on images */
+img {
+  content-visibility: auto;
+}
+
+/* Custom crisp scrollbar for high efficiency */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.6);
+}
+
+/* Global modal and touch scrolling rules:
+   CRITICAL: Never set overscroll-behavior-y: contain on horizontal-only containers (.overflow-x-auto),
+   as it completely traps the mouse scroll wheel over tables and wide content. */
+.overflow-y-auto, .overflow-auto {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  overscroll-behavior-x: auto;
+}
+
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: auto;
+  overscroll-behavior-y: auto !important;
+  touch-action: pan-x pan-y pinch-zoom;
+}
+
+/* Custom scrollbar utility */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.4) transparent;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Dynamic Mobile Responsive Table & Modal Rules */
+@media (max-width: 768px) {
+  .responsive-table-container,
+  .table-responsive-wrapper {
+    width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    margin-bottom: 0.75rem !important;
+    border-radius: 1rem !important;
+    display: block !important;
+  }
+  
+  /* Mobile modal adjustments */
+  .modal-content-responsive,
+  [role="dialog"] > div {
+    max-width: 95vw !important;
+    max-height: 88vh !important;
+    margin: 0.5rem auto !important;
+  }
+
+  /* Compact padding for modal headers & bodies on mobile */
+  .modal-compact-mobile {
+    padding: 0.75rem !important;
+  }
+}
+
+/* Fluid touch-friendly table utilities */
+.table-fluid-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+/* Auto-hide classes for secondary table columns on mobile */
+@media (max-width: 640px) {
+  .col-hide-mobile {
+    display: none !important;
+  }
+}
+
+@media (max-width: 1024px) {
+  .col-hide-tablet {
+    display: none !important;
+  }
+}
+
+/* Enhanced responsive container constraints */
+@supports (height: 100dvh) {
+  .max-h-screen-dvh {
+    max-height: 92dvh;
+  }
+}
+
+/* تعديل لون خلفية رأس الجدول إلى اللون الأزرق المعتمد #2F5597 والنصوص باللون الأبيض والخط العريض */
+thead,
+thead tr,
+thead th,
+thead td,
+table thead,
+table thead tr,
+table thead th,
+table thead td {
+  background-color: #2F5597 !important;
+  color: #ffffff !important;
+  font-weight: bold !important;
+}
+
+thead th *,
+thead td * {
+  color: #ffffff !important;
+}
+
+thead th svg,
+thead td svg {
+  stroke: #ffffff !important;
+}
+

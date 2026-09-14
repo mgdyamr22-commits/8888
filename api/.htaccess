@@ -1,0 +1,22 @@
+# Almakhzoun Inventory Pro - API Routing Configuration
+<IfModule mod_authz_core.c>
+    CGIPassAuth On
+</IfModule>
+
+<IfModule mod_dir.c>
+    DirectorySlash Off
+</IfModule>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Pass Authorization Header to PHP (FastCGI / FPM)
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Allow direct access to physical .php files if called explicitly
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule \.php$ - [L]
+
+    # Route all API calls (including directory names like /api/cars, /api/sales) to front controller
+    RewriteRule ^ index.php [QSA,L]
+</IfModule>
