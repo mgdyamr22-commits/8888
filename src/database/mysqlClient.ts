@@ -28,22 +28,46 @@ class SqlitePoolShim {
   private transformSql(sql: string): string {
     let transformed = sql;
 
-    // 1. SHOW TABLES
+    // 0. ALTER TABLE ... MODIFY / CHANGE COLUMN (no-op in SQLite)
+    if (/^\s*ALTER\s+TABLE\s+[`'"]?\w+[`'"]?\s+(MODIFY|CHANGE)/i.test(transformed)) {
+      return `SELECT 1`;
+    }
+
+    // 1. SHOW COLUMNS FROM `table` [LIKE 'col']
+    const showColMatch = transformed.match(/^\s*SHOW\s+COLUMNS\s+FROM\s+[`'"]?(\w+)[`'"]?(?:\s+LIKE\s+['"]([^'"]+)['"])?/i);
+    if (showColMatch) {
+      const table = showColMatch[1];
+      const colLike = showColMatch[2];
+      if (colLike) {
+        return `SELECT name as Field, type as Type FROM pragma_table_info('${table}') WHERE name LIKE '${colLike}'`;
+      }
+      return `SELECT name as Field, type as Type FROM pragma_table_info('${table}')`;
+    }
+
+    // 2. SHOW TABLES [LIKE 'pattern']
+    const showTablesLikeMatch = transformed.match(/^\s*SHOW\s+TABLES\s+LIKE\s+['"]([^'"]+)['"]/i);
+    if (showTablesLikeMatch) {
+      const pattern = showTablesLikeMatch[1];
+      return `SELECT name as \`Tables_in_database\` FROM sqlite_master WHERE type='table' AND name LIKE '${pattern}'`;
+    }
     if (/^\s*SHOW\s+TABLES/i.test(transformed)) {
       return `SELECT name as \`Tables_in_database\` FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'`;
     }
 
-    // 2. Remove MySQL engine, charset, collate directives
+    // 3. Remove MySQL engine, charset, collate directives
     transformed = transformed.replace(/ENGINE\s*=\s*\w+/gi, '');
     transformed = transformed.replace(/DEFAULT\s+CHARSET\s*=\s*\w+/gi, '');
     transformed = transformed.replace(/COLLATE\s*=\s*\w+/gi, '');
     transformed = transformed.replace(/CHARACTER\s+SET\s+\w+/gi, '');
 
-    // 3. Remove inline table indexes (INDEX idx_name (col), KEY idx_name (col))
+    // 4. Remove inline table indexes (INDEX idx_name (col), KEY idx_name (col))
     transformed = transformed.replace(/,\s*(INDEX|KEY)\s+\w+\s*\([^)]+\)/gi, '');
     transformed = transformed.replace(/,\s*UNIQUE\s+KEY\s+\w+\s*(\([^)]+\))/gi, ', UNIQUE $1');
 
-    // 4. Primary key auto increment transformation
+    // 5. Remove MySQL column ordering (AFTER column_name)
+    transformed = transformed.replace(/\s+AFTER\s+[`'"]?\w+[`'"]?/gi, '');
+
+    // 6. Primary key auto increment transformation
     transformed = transformed.replace(/\b(BIGINT|INT|INTEGER|SMALLINT|TINYINT)\s*(?:\(\d+\))?(?:\s+NOT\s+NULL)?\s+AUTO_INCREMENT\s+PRIMARY\s+KEY/gi, 'INTEGER PRIMARY KEY AUTOINCREMENT');
     transformed = transformed.replace(/\b(BIGINT|INT|INTEGER|SMALLINT|TINYINT)\s*(?:\(\d+\))?(?:\s+NOT\s+NULL)?\s+PRIMARY\s+KEY\s+AUTO_INCREMENT/gi, 'INTEGER PRIMARY KEY AUTOINCREMENT');
     transformed = transformed.replace(/\b(BIGINT|INT|INTEGER|SMALLINT|TINYINT)\s*(?:\(\d+\))?(?:\s+NOT\s+NULL)?\s+AUTO_INCREMENT/gi, 'INTEGER PRIMARY KEY AUTOINCREMENT');
@@ -54,7 +78,7 @@ class SqlitePoolShim {
     // Clean up if duplicate
     transformed = transformed.replace(/AUTOINCREMENT\s+AUTOINCREMENT/gi, 'AUTOINCREMENT');
 
-    // 5. Types translations
+    // 7. Types translations
     transformed = transformed.replace(/TINYINT\s*\(\s*\d+\s*\)/gi, 'INTEGER');
     transformed = transformed.replace(/BIGINT\s*\(\s*\d+\s*\)/gi, 'INTEGER');
     transformed = transformed.replace(/INT\s*\(\s*\d+\s*\)/gi, 'INTEGER');
@@ -65,13 +89,13 @@ class SqlitePoolShim {
     transformed = transformed.replace(/ENUM\s*\([^)]+\)/gi, 'TEXT');
     transformed = transformed.replace(/ON\s+UPDATE\s+CURRENT_TIMESTAMP/gi, '');
 
-    // 6. INSERT IGNORE -> INSERT OR IGNORE
+    // 8. INSERT IGNORE -> INSERT OR IGNORE
     transformed = transformed.replace(/INSERT\s+IGNORE\s+INTO/gi, 'INSERT OR IGNORE INTO');
 
-    // 7. NOW() -> datetime('now', 'localtime')
+    // 9. NOW() -> datetime('now', 'localtime')
     transformed = transformed.replace(/\bNOW\(\)/gi, `datetime('now', 'localtime')`);
 
-    // 8. ON DUPLICATE KEY UPDATE -> transform for SQLite UPSERT
+    // 10. ON DUPLICATE KEY UPDATE -> transform for SQLite UPSERT
     if (/ON\s+DUPLICATE\s+KEY\s+UPDATE/i.test(transformed)) {
       const parts = transformed.split(/ON\s+DUPLICATE\s+KEY\s+UPDATE/i);
       if (parts.length === 2) {

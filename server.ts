@@ -18,10 +18,95 @@ import lanRoutes from './src/routes/lanRoutes';
 import delegateRoutes from './src/routes/delegateRoutes';
 import { db } from './src/database/db';
 import { dbManager } from './src/database/mysqlClient';
+import { runAllMigrations } from './src/database/mysqlMigrations';
+import bcrypt from 'bcryptjs';
+
+async function ensureDatabaseReady() {
+  try {
+    if (!dbManager.hasPool()) {
+      return;
+    }
+    const tableRows: any = await dbManager.query('SHOW TABLES');
+    const count = Array.isArray(tableRows) ? tableRows.length : 0;
+    if (count < 10) {
+      console.log('🔄 Initializing database schema and running migrations...');
+      await runAllMigrations();
+    }
+
+    // Check if admin user exists in MySQL/SQLite
+    const userRows: any = await dbManager.query("SELECT COUNT(*) as count FROM users WHERE role = 'مدير'");
+    const adminCount = userRows[0]?.count || 0;
+    if (adminCount === 0) {
+      console.log('👤 Seeding default admin and default organization...');
+      const tenantId = 'org-default';
+      const orgName = 'مؤسسة المخزون للسيارات';
+      const orgPhone = '0500000000';
+
+      await dbManager.query(`
+        INSERT INTO tenants (id, name, commercial_registry, tax_number, phone, address)
+        VALUES (?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE name = VALUES(name)
+      `, [tenantId, orgName, '1010101010', '300000000000003', orgPhone, 'المملكة العربية السعودية']);
+
+      await dbManager.query(`
+        INSERT INTO branches (id, tenant_id, name, code, is_active)
+        VALUES (?, ?, ?, ?, 1)
+        ON DUPLICATE KEY UPDATE name = VALUES(name)
+      `, ['branch-main', tenantId, 'الفرع الرئيسي - المعرض العام', 'MAIN-01']);
+
+      const adminUsername = 'admin';
+      const salt = await bcrypt.genSalt(10);
+      const passwordHash = await bcrypt.hash('admin', salt);
+      const recoveryCodePlain = 'AFS-2026-PRO8-X99Z';
+      const recoveryCodeHash = await bcrypt.hash(recoveryCodePlain, 10);
+      const adminId = 'u_admin_1';
+
+      await dbManager.query(`
+        INSERT INTO users (
+          id, tenant_id, branch_id, username, password_hash, role, full_name, email, phone,
+          primary_admin, recovery_code_hash, is_active
+        ) VALUES (?, ?, ?, ?, ?, 'مدير', ?, ?, ?, 1, ?, 1)
+        ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash)
+      `, [adminId, tenantId, 'branch-main', adminUsername, passwordHash, 'المدير العام', 'admin@almakhzoun.com', orgPhone, recoveryCodeHash]);
+
+      const allPermissions = [
+        'view_dashboard', 'manage_inventory', 'view_reports',
+        'manage_users', 'manage_settings', 'manage_backup',
+        'view_financials', 'export_data', 'view_sales'
+      ];
+
+      for (const perm of allPermissions) {
+        await dbManager.query(`
+          INSERT INTO user_permissions (user_id, permission_key)
+          VALUES (?, ?)
+          ON DUPLICATE KEY UPDATE permission_key = VALUES(permission_key)
+        `, [adminId, perm]);
+      }
+
+      await dbManager.query(`
+        INSERT INTO settings (id, tenant_id, org_name, org_type, contact_number, tax_number, commercial_register, address, system_version)
+        VALUES (?, ?, ?, 'مؤسسة', ?, ?, ?, ?, '3.6.0')
+        ON DUPLICATE KEY UPDATE org_name = VALUES(org_name)
+      `, ['settings_default', tenantId, orgName, orgPhone, '300000000000003', '1010101010', 'المملكة العربية السعودية']);
+
+      // Ensure .installed lock file exists
+      const lockPath = path.join(process.cwd(), '.installed');
+      if (!fs.existsSync(lockPath)) {
+        fs.writeFileSync(lockPath, new Date().toISOString(), 'utf8');
+      }
+      console.log('✅ Database schema and default admin initialized successfully.');
+    }
+  } catch (err) {
+    console.error('⚠️ Notice in ensureDatabaseReady:', err);
+  }
+}
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
+
+  // Ensure database tables and initial user are provisioned
+  await ensureDatabaseReady();
 
   // Set trust proxy (important for reading accurate client IPs)
   app.set('trust proxy', true);
@@ -109,6 +194,7 @@ async function startServer() {
     app.use(`${prefix}/installer`, installRoutes);
     app.use(`${prefix}/api/install`, installRoutes);
     app.use(`${prefix}/api/auth`, authRoutes);
+    app.use(`${prefix}/api`, authRoutes);
     app.use(`${prefix}/api/cars`, carRoutes);
     app.use(`${prefix}/api/sales`, salesRoutes);
     app.use(`${prefix}/api/transfers`, transferRoutes);
