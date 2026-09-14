@@ -1,0 +1,18 @@
+# Almakhzoun Inventory Pro - Installer API Subdirectory Configuration
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+    
+    # Direct access to .php files
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule \.php$ - [L]
+
+    # Map friendly install routes to physical PHP scripts
+    RewriteRule ^execute/?$ execute.php [QSA,L]
+    RewriteRule ^status/?$ status.php [QSA,L]
+    RewriteRule ^requirements/?$ requirements.php [QSA,L]
+    RewriteRule ^test-db/?$ test-db.php [QSA,L]
+    RewriteRule ^migrate/?$ migrate.php [QSA,L]
+    RewriteRule ^create-admin/?$ create-admin.php [QSA,L]
+    RewriteRule ^finalize/?$ finalize.php [QSA,L]
+</IfModule>

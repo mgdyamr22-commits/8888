@@ -1,0 +1,11 @@
+{
+  "name": "مخزوني برو - منصة كاريان الرقمية",
+  "description": "نظام مخزوني المتكامل لإدارة أصول السيارات وتتبع المخزون لحظياً. تطوير: منصة كاريان الرقمية. نظام مشفر بالكامل لضمان أمان البيانات المؤسسية.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ],
+  "version": "3.6.0"
+}

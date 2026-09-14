@@ -1,0 +1,262 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="نظام مخزوني المتكامل لإدارة أصول السيارات وتتبع المخزون لحظياً. تطوير: منصة كاريان الرقمية. نظام مشفر بالكامل لضمان أمان البيانات المؤسسية.">
+    <meta property="og:title" content="مخزوني برو - منصة كاريان الرقمية">
+    <meta property="og:description" content="نظام مخزوني المتكامل لإدارة أصول السيارات وتتبع المخزون لحظياً. تطوير: منصة كاريان الرقمية. نظام مشفر بالكامل لضمان أمان البيانات المؤسسية.">
+    <title>مخزوني برو</title>
+    <script>
+      // Dynamically resolve application base path for API routing in both root and subfolders without breaking HashRouter
+      (function() {
+        try {
+          var p = window.location.pathname;
+          var knownRoutes = ['dashboard', 'reports', 'inventory', 'sales', 'customers', 'search', 'users', 'backup', 'settings', 'delegate-dashboard', 'vehicle-costs', 'corporate-portal', 'showroom', 'login', 'install'];
+          var parts = p.split('/').filter(Boolean);
+          var sub = '';
+          var idx = -1;
+          for (var i = 0; i < parts.length; i++) {
+            if (knownRoutes.indexOf(parts[i].toLowerCase()) !== -1) {
+              idx = i;
+              break;
+            }
+          }
+          if (idx > 0) {
+            sub = '/' + parts.slice(0, idx).join('/') + '/';
+          } else if (idx === 0) {
+            sub = '/';
+          } else {
+            sub = p.endsWith('/') ? p : (p.substring(0, p.lastIndexOf('/') + 1) || '/');
+          }
+          window.__APP_BASE_PATH__ = sub;
+        } catch (e) {}
+      })();
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+      try {
+        window.ipcRenderer = require('electron').ipcRenderer;
+      } catch (e) {
+        console.warn("System running in browser mode");
+      }
+
+      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark')
+      } else {
+        document.documentElement.classList.remove('dark')
+      }
+    </script>
+    <style>
+        :root { --font-main: 'Cairo', sans-serif; }
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: #3b82f6 transparent;
+        }
+        *::-webkit-scrollbar {
+            width: 6px;
+        }
+        *::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        *::-webkit-scrollbar-thumb {
+            background-color: #3b82f6;
+            border-radius: 20px;
+        }
+        body {
+            font-family: var(--font-main);
+            margin: 0;
+            padding: 0;
+            background-color: #020617;
+            color: #f8fafc;
+            min-height: 100vh;
+            width: 100%;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+        #root { 
+            min-height: 100vh;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        #initial-loader {
+            position: fixed;
+            inset: 0;
+            background: #020617;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        
+        @media print {
+            body, html, #root {
+                height: auto !important;
+                width: auto !important;
+                overflow: visible !important;
+                background: white !important;
+                position: static !important;
+            }
+            .h-screen, .w-screen, .overflow-hidden, .overflow-y-auto, .h-full, .w-full {
+                height: auto !important;
+                width: auto !important;
+                overflow: visible !important;
+                position: static !important;
+            }
+            main {
+                margin: 0 !important;
+                padding: 0 !important;
+                display: block !important;
+                height: auto !important;
+                overflow: visible !important;
+            }
+            aside, .sidebar-container, .print-hidden, .no-print {
+                display: none !important;
+            }
+            .md\:pr-64 {
+                padding-right: 0 !important;
+            }
+        }
+
+        .loader-ring {
+            width: 80px;
+            height: 80px;
+            border: 4px solid rgba(59, 130, 246, 0.1);
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+    <div id="initial-loader">
+        <div class="loader-ring"></div>
+        <div id="loader-text" class="mt-6 text-blue-500 font-bold text-xs tracking-wider">جاري فحص حالة النظام والتهيئة...</div>
+    </div>
+
+    <div id="root"></div>
+    
+    <script type="module" src="./index.tsx"></script>
+
+    <script>
+        (function() {
+            var isDismissed = false;
+
+            function removeLoader() {
+                if (isDismissed) return;
+                isDismissed = true;
+                var loader = document.getElementById('initial-loader');
+                if (loader) {
+                    loader.style.pointerEvents = 'none';
+                    loader.style.transition = 'opacity 0.3s ease';
+                    loader.style.opacity = '0';
+                    setTimeout(function() {
+                        if (loader && loader.parentNode) {
+                            loader.parentNode.removeChild(loader);
+                        }
+                    }, 300);
+                }
+            }
+
+            window.__dismissInitialLoader = removeLoader;
+
+            // Immediately watch for React children mounting into #root
+            var root = document.getElementById('root');
+            if (root) {
+                if (root.children.length > 0) {
+                    removeLoader();
+                } else if (window.MutationObserver) {
+                    var observer = new MutationObserver(function() {
+                        if (root.children.length > 0) {
+                            removeLoader();
+                            observer.disconnect();
+                        }
+                    });
+                    observer.observe(root, { childList: true });
+                }
+            }
+
+            // Capture script errors only if critical
+            window.addEventListener('error', function(e) {
+                var target = e.target || e.srcElement;
+                if (target && target.tagName === 'SCRIPT') {
+                    var src = target.src || '';
+                    if (src.includes('index') || src.includes('assets/')) {
+                        console.error('[System Script Error]', e);
+                        setTimeout(function() {
+                            var r = document.getElementById('root');
+                            if (!r || r.children.length === 0) {
+                                showBootFallback('asset_load_failure');
+                            }
+                        }, 5000);
+                    }
+                }
+            }, true);
+
+            window.addEventListener('unhandledrejection', function(e) {
+                console.warn('[System Boot Rejection]', e.reason);
+            });
+
+            function showBootFallback(errorType) {
+                var r = document.getElementById('root');
+                if (r && r.children.length > 0) {
+                    removeLoader();
+                    return; // React already mounted successfully
+                }
+                var loader = document.getElementById('initial-loader');
+                if (loader && !isDismissed) {
+                    loader.style.pointerEvents = 'auto';
+                    
+                    var errorTitle = 'نظام المخزون برو — تنبيه الاتصال';
+                    var errorDescription = 'استغرقت عملية تشغيل واجهة النظام وقتاً أطول من المعتاد. يرجى التحقق من اتصال الإنترنت أو إعادة تحميل الصفحة.';
+                    
+                    if (errorType === 'asset_load_failure') {
+                        errorTitle = 'تعذر تحميل ملفات النظام';
+                        errorDescription = 'فشل تحميل أحد ملفات الواجهة الأساسية من الخادم. يرجى التحقق من اتصال الإنترنت أو النقر على زر إعادة المحاولة أدناه.';
+                    } else if (errorType === 'timeout') {
+                        errorTitle = 'استغرق التحميل وقتاً أطول من المعتاد';
+                        errorDescription = 'قد يكون اتصال الإنترنت بطيئاً أو جاري تهيئة الخادم لأول مرة. يرجى الانتظار قليلاً أو النقر على زر إعادة المحاولة.';
+                    }
+
+                    loader.innerHTML = `
+                        <div style="background:#0f172a; border:1px solid #1e293b; border-radius:24px; max-width:500px; width:92%; padding:32px; text-align:center; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); font-family:Cairo,sans-serif; direction:rtl;">
+                            <div style="width:56px; height:56px; background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.2); border-radius:16px; display:inline-flex; align-items:center; justify-content:center; margin-bottom:16px;">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                            </div>
+                            <h2 style="color:#ffffff; font-size:18px; font-weight:800; margin:0 0 10px 0;">` + errorTitle + `</h2>
+                            <p style="color:#94a3b8; font-size:13px; line-height:1.7; margin:0 0 20px 0;">
+                                ` + errorDescription + `
+                            </p>
+                            <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+                                <button onclick="window.location.reload()" style="background:#2563eb; color:#ffffff; border:none; padding:10px 22px; border-radius:12px; font-weight:700; font-size:13px; cursor:pointer; font-family:Cairo,sans-serif; transition:background 0.2s;">إعادة المحاولة</button>
+                                <a href="api/health.php" target="_blank" style="background:#1e293b; color:#cbd5e1; border:1px solid #334155; text-decoration:none; padding:10px 18px; border-radius:12px; font-weight:700; font-size:13px; display:inline-block; font-family:Cairo,sans-serif;">فحص حالة الخادم</a>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+
+            // Generous fallback timeout (35 seconds instead of 5s) to allow slow mobile/hosting connections to download bundles
+            var attempts = 0;
+            var checkReady = setInterval(function() {
+                attempts++;
+                var r = document.getElementById('root');
+                if (r && r.children.length > 0) {
+                    removeLoader();
+                    clearInterval(checkReady);
+                } else if (attempts > 350) { // 35 seconds
+                    clearInterval(checkReady);
+                    showBootFallback('timeout');
+                }
+            }, 100);
+        })();
+    </script>
+</body>
+</html>

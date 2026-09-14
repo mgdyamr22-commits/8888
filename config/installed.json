@@ -1,0 +1,16 @@
+{
+  "installed": true,
+  "installed_at": "2026-08-25T07:17:03.948Z",
+  "system_version": "3.6.0",
+  "db": {
+    "host": "localhost",
+    "port": 3306,
+    "database": "almakhzoun_cloud",
+    "username": "root",
+    "password": ""
+  },
+  "security": {
+    "jwtSecret": "a4fa28ca4f1fd5d259860dac9d199a6a7f8e511c5bd98a29a9bee01b3218eb59",
+    "aesKeyHex": "b31d331af209a0fe6e75e404e6197faef81038882350ef05ec5c41f6d334be2c"
+  }
+}

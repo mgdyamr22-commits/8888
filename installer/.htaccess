@@ -1,0 +1,19 @@
+# Almakhzoun Inventory Pro - Installer Directory Rules
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # 1. Allow direct execution of actions.php and index.php without rewrites
+    RewriteRule ^actions\.php$ - [L]
+    RewriteRule ^index\.php$ - [L]
+    
+    # 2. Direct any sub-route in installer directory to actions.php
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(.*)$ actions.php?action=$1 [QSA,L]
+</IfModule>
+
+<IfModule mod_headers.c>
+    Header set Access-Control-Allow-Origin "*"
+    Header set Access-Control-Allow-Methods "GET, POST, OPTIONS"
+    Header set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+</IfModule>

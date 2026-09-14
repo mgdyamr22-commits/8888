@@ -1,0 +1,22 @@
+# السماح بالوصول العام لعرض الملفات المرفوعة (شعارات/أختام) فقط
+# باقي مجلدات storage (النسخ الاحتياطية، السجلات، المستندات) تبقى محمية بالكامل عبر storage/.htaccess
+<IfModule mod_authz_core.c>
+    Require all granted
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Allow from all
+</IfModule>
+
+# منع تنفيذ أي سكربتات داخل هذا المجلد كإجراء أمان إضافي (يسمح فقط بعرض الصور/الملفات)
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<FilesMatch "\.(php|phtml|php3|php4|php5|php7|phar|pl|py|cgi|asp|aspx|jsp|sh|exe)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Deny from all
+    </IfModule>
+</FilesMatch>
